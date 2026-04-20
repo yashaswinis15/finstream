@@ -4,7 +4,7 @@ datasources:
   - name: PostgreSQL
     type: postgres
     url: postgres:5432
-    database: ${POSTGRES_DB}
+    database: fintechdb
     user: ${POSTGRES_USER}
     secureJsonData:
       password: ${POSTGRES_PASSWORD}
