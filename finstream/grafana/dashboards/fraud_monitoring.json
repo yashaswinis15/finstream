@@ -1,0 +1,125 @@
+{
+  "title": "FinStream — Fraud Monitoring",
+  "uid": "finstream-fraud",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Transactions",
+      "description": "Total transactions within selected time range",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM transactions WHERE $__timeFilter(created_at)",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Flagged Transactions",
+      "description": "Transactions marked as flagged",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM transactions WHERE status='flagged' AND $__timeFilter(created_at)",
+          "format": "table"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "orange", "value": 5 },
+            { "color": "red", "value": 20 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Fraud Rate (%)",
+      "description": "Percentage of flagged transactions",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(ROUND(COUNT(*) FILTER (WHERE status='flagged')::NUMERIC / NULLIF(COUNT(*),0) * 100, 2), 0) AS value FROM transactions WHERE $__timeFilter(created_at)",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Avg Risk Score",
+      "description": "Average transaction risk score",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(ROUND(AVG(risk_score)::NUMERIC, 3), 0) AS value FROM transactions WHERE $__timeFilter(created_at)",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Transaction Volume per Minute",
+      "description": "Total vs flagged transactions over time",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, COUNT(*) AS total_transactions, COUNT(*) FILTER (WHERE status='flagged') AS flagged_transactions FROM transactions WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Avg Risk Score per Minute",
+      "description": "Trend of average risk score",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, ROUND(AVG(risk_score)::NUMERIC, 3) AS avg_risk_score FROM transactions WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Recent High-Risk Transactions",
+      "description": "Transactions with risk_score >= 0.7",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT t.transaction_id, t.account_id, a.full_name, t.txn_type, t.amount, t.merchant, t.status, t.risk_score, t.location_city, t.is_international, t.device_type, t.created_at FROM transactions t JOIN accounts a ON t.account_id = a.account_id WHERE t.risk_score >= 0.70 AND $__timeFilter(t.created_at) ORDER BY t.risk_score DESC LIMIT 50",
+          "format": "table"
+        }
+      ]
+    }
+
+  ]
+}

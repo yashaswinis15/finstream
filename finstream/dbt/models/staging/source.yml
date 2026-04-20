@@ -1,0 +1,52 @@
+version: 2
+
+sources:
+  - name: finstream
+    database: fintechdb
+    schema: public
+
+    freshness:
+      warn_after: {count: 2, period: minute}
+      error_after: {count: 5, period: minute}
+
+    tables:
+      - name: transactions
+        description: "Raw fintech transactions from PostgreSQL ingestion layer"
+
+        columns:
+          - name: transaction_id
+            tests: [not_null, unique]
+
+          - name: account_id
+            tests:
+              - not_null
+              - relationships:
+                  to: source('finstream', 'accounts')
+                  field: account_id
+
+          - name: amount
+            tests:
+              - not_null
+
+          - name: risk_score
+            tests:
+              - not_null
+              - dbt_utils.expression_is_true:
+                  expression: "risk_score >= 0 AND risk_score <= 1"
+
+          - name: status
+            tests:
+              - accepted_values:
+                  values: ['pending', 'completed', 'failed', 'flagged', 'reversed']
+
+      - name: accounts
+        description: "Customer bank accounts with balance and lifecycle status"
+
+        columns:
+          - name: account_id
+            tests: [not_null, unique]
+
+          - name: status
+            tests:
+              - accepted_values:
+                  values: ['active', 'frozen', 'closed', 'pending']

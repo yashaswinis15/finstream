@@ -1,0 +1,20 @@
+# FinStream Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Data simulation
+psycopg2-binary==2.9.9
+faker==22.2.0
+schedule==1.2.1
+
+# Spark streaming
+pyspark==3.5.0
+delta-spark==3.0.0
+
+# dbt
+dbt-postgres==1.7.4
+
+# Alert engine
+requests==2.31.0
+
+# Kafka 
+kafka-python==2.0.2

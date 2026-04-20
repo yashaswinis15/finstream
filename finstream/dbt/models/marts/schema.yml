@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: mart_fraud_metrics
+    description: "Gold layer table identifying potentially fraudulent transactions using risk scoring and rule-based flags"
+
+    columns:
+      - name: transaction_id
+        tests: [not_null, unique]
+
+      - name: risk_score
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "risk_score >= 0 AND risk_score <= 1"
+
+      - name: risk_tier
+        tests:
+          - accepted_values:
+              values: ['low', 'medium', 'high', 'critical']
+
+      - name: is_fraud_suspect
+        tests: [not_null]
+
+  - name: mart_transaction_summary
+    description: "Daily aggregated KPIs for transaction volume, value, and distribution across transaction types and categories"
+
+    columns:
+      - name: txn_date
+        tests: [not_null]
+
+      - name: total_transactions
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "total_transactions >= 0"

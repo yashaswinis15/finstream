@@ -1,0 +1,39 @@
+{
+  "name": "finstream-postgres-cdc",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "YOUR_DB_USER",
+    "database.password": "YOUR_DB_PASSWORD",
+    "database.dbname": "fintechdb",
+    "database.server.name": "finstream",
+
+    "table.include.list": "public.transactions,public.accounts,public.payments",
+
+    "plugin.name": "pgoutput",
+    "publication.autocreate.mode": "filtered",
+    "slot.name": "finstream_debezium_slot",
+
+    "topic.prefix": "finstream",
+
+    "decimal.handling.mode": "double",
+    "time.precision.mode": "connect",
+
+    "tombstones.on.delete": "false",
+
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "true",
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+    "transforms.unwrap.add.fields": "op,table,source.ts_ms,db",
+
+    "heartbeat.interval.ms": "10000",
+    "snapshot.mode": "initial",
+
+    "max.batch.size": "2048",
+    "max.queue.size": "8192",
+    "poll.interval.ms": "500"
+  }
+}

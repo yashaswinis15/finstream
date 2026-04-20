@@ -1,0 +1,175 @@
+{
+  "title": "FinStream — System Health & Pipeline",
+  "uid": "finstream-health",
+  "refresh": "15s",
+  "time": { "from": "now-30m", "to": "now" },
+
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Events (Last 60s)",
+      "description": "Incoming transactions in the last 60 seconds",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM transactions WHERE created_at > NOW() - INTERVAL '60 seconds'",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Pipeline Lag (seconds)",
+      "description": "Time since last transaction event",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(EXTRACT(EPOCH FROM (NOW() - MAX(created_at))), 0)::INT AS value FROM transactions",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Active Accounts",
+      "description": "Number of active accounts",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM accounts WHERE status = 'active'",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Frozen Accounts",
+      "description": "Accounts currently frozen",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM accounts WHERE status = 'frozen'",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Transaction Throughput",
+      "description": "Transactions per minute",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, COUNT(*) AS transactions FROM transactions WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Transaction Status Breakdown",
+      "description": "Completed vs Pending vs Failed vs Flagged",
+      "gridPos": { "x": 0, "y": 11, "w": 12, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, COUNT(*) FILTER (WHERE status='completed') AS completed, COUNT(*) FILTER (WHERE status='pending') AS pending, COUNT(*) FILTER (WHERE status='failed') AS failed, COUNT(*) FILTER (WHERE status='flagged') AS flagged FROM transactions WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Transaction Volume ($)",
+      "description": "Total completed transaction volume per minute",
+      "gridPos": { "x": 12, "y": 11, "w": 12, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', created_at) AS time, COALESCE(ROUND(SUM(amount)::NUMERIC, 2), 0) AS volume FROM transactions WHERE status='completed' AND $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+
+    {
+      "id": 8,
+      "type": "piechart",
+      "title": "Transactions by Type",
+      "description": "Distribution of transaction types",
+      "gridPos": { "x": 0, "y": 18, "w": 8, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT txn_type AS metric, COUNT(*) AS value FROM transactions WHERE $__timeFilter(created_at) GROUP BY txn_type",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 9,
+      "type": "piechart",
+      "title": "Transactions by Device",
+      "description": "Device type distribution",
+      "gridPos": { "x": 8, "y": 18, "w": 8, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(device_type,'unknown') AS metric, COUNT(*) AS value FROM transactions WHERE $__timeFilter(created_at) GROUP BY device_type",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "Domestic vs International",
+      "description": "Transaction geography split",
+      "gridPos": { "x": 16, "y": 18, "w": 8, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT CASE WHEN is_international THEN 'International' ELSE 'Domestic' END AS metric, COUNT(*) AS value FROM transactions WHERE $__timeFilter(created_at) GROUP BY is_international",
+          "format": "table"
+        }
+      ]
+    },
+
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Top Risky Accounts",
+      "description": "Accounts with highest average risk score",
+      "gridPos": { "x": 0, "y": 25, "w": 24, "h": 7 },
+      "datasource": { "type": "postgres", "uid": "YOUR_DATASOURCE_UID" },
+      "targets": [
+        {
+          "rawSql": "SELECT t.account_id, a.full_name, a.account_type, a.status, COUNT(*) AS total_txns, ROUND(AVG(t.risk_score)::NUMERIC, 3) AS avg_risk_score, COUNT(*) FILTER (WHERE t.status='flagged') AS flagged_txns, ROUND(SUM(t.amount)::NUMERIC, 2) AS total_volume FROM transactions t JOIN accounts a ON t.account_id = a.account_id WHERE $__timeFilter(t.created_at) GROUP BY t.account_id, a.full_name, a.account_type, a.status ORDER BY avg_risk_score DESC LIMIT 10",
+          "format": "table"
+        }
+      ]
+    }
+
+  ]
+}
